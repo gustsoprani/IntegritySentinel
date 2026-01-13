@@ -9,7 +9,7 @@
 ## 📋 Sobre o Projeto
 
 O **IntegritySentinel** é um agente de segurança (FIM - File Integrity Monitor) projetado para rodar em background. Ele monitora uma pasta específica e detecta três tipos de eventos críticos de segurança:
-1. **Criação** de novos arquivos não autorizados.
+1. **Criação** de novos arquivos.
 2. **Alteração** de conteúdo (detectada via recálculo de Hash SHA-256).
 3. **Exclusão** de arquivos monitorados.
 
@@ -24,23 +24,23 @@ O sistema opera em um ciclo de *Polling* inteligente, configurável e otimizado 
 ```mermaid
 flowchart TD
     A[Início do Ciclo] --> B{Pasta Existe?}
-    B -- Não --> Z[Logar Erro e Aguardar]
+    B -- Não --> Z["Logar Erro e Aguardar"]
     B -- Sim --> C[Listar Arquivos no Disco]
     C --> D[Para CADA Arquivo Real]
     
     D --> E{Arquivo Bloqueado?}
-    E -- Sim --> F[Logar Warning / Tentar Prox Ciclo]
+    E -- Sim --> F["Logar Warning / Tentar Prox Ciclo"]
     E -- Não --> G[Calcular Hash SHA-256]
     
     G --> H{Hash existe no BD?}
-    H -- Não (Novo) --> I[INSERT no Banco]
-    I --> J[Log: ARQUIVO CRIADO]
+    H -- "Não (Novo)" --> I[INSERT no Banco]
+    I --> J["Log: ARQUIVO CRIADO"]
     
     H -- Sim --> K{Hash Mudou?}
-    K -- Sim (Alterado) --> L[UPDATE no Banco]
-    L --> M[Log: ALERTA DE SEGURANÇA!]
+    K -- "Sim (Alterado)" --> L[UPDATE no Banco]
+    L --> M["Log: ALERTA DE SEGURANÇA!"]
     
-    K -- Não (Igual) --> N[Nenhuma Ação]
+    K -- "Não (Igual)" --> N[Nenhuma Ação]
     
     J --> O[Próximo]
     M --> O
@@ -50,7 +50,7 @@ flowchart TD
     O --> P{Acabaram os Arquivos?}
     P -- Não --> D
     P -- Sim --> Q[Verificar Deletados no DB]
-    Q --> R[Dormir (Intervalo Configurado)]
+    Q --> R["Dormir (Intervalo Configurado)"]
     R --> A
 ```
 
