@@ -17,10 +17,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Domain\Entities\" />
-    <Folder Include="Domain\Interfaces\" />
-    <Folder Include="Data\" />
     <Folder Include="docs\" />
-    <Folder Include="Services\Interfaces\" />
   </ItemGroup>
 </Project>

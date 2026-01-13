@@ -1,5 +1,8 @@
 using IntegritySentinel.Worker;
 using IntegritySentinel.Worker.Configuration;
+using IntegritySentinel.Worker.Data;
+using IntegritySentinel.Worker.Domain.Interfaces;
+using IntegritySentinel.Worker.Services;
 using Serilog;
 
 // Configuração inicial do Serilog (para pegar erros de startup)
@@ -23,6 +26,12 @@ try
 
     // 3. Registrar o Worker
     builder.Services.AddHostedService<Worker>();
+
+    builder.Services.AddSingleton<DatabaseBootstrap>();
+
+    builder.Services.AddSingleton<IFileRepository, DapperFileRepository>();
+
+    builder.Services.AddSingleton<IFileHasher, Sha256Hasher>();
 
     // Futuro: Registrar Repositories e Services aqui...
 
