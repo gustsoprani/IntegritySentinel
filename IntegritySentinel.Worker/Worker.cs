@@ -24,10 +24,6 @@ namespace IntegritySentinel.Worker
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                if (_logger.IsEnabled(LogLevel.Information))
-                {
-                    _logger.LogInformation("Worker running at: {time}", DateTimeOffset.Now);
-                }
                 var caminho = _MonitorSettings.Value.TargetPath;
                 if (!Directory.Exists(caminho))
                 {
