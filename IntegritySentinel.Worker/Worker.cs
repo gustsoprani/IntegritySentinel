@@ -33,7 +33,7 @@ namespace IntegritySentinel.Worker
                 {
                     Directory.CreateDirectory(caminho);
                 }
-                var files = Directory.GetFiles(caminho);
+                var files = Directory.EnumerateFiles(caminho, "*", SearchOption.AllDirectories);
                 foreach (var file in files)
                 {
                     string? hashAtual = await _IFileHasher.HashAsync(file);
