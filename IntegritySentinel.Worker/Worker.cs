@@ -61,21 +61,18 @@ namespace IntegritySentinel.Worker
                         }
                     }
                 }
-                // 1. Buscamos tudo o que o banco "acha" que existe
                 var dbFiles = await _IFileRepository.SearchAll();
 
-                // 2. Comparamos com a realidade (files do disco)
                 foreach (var dbFile in dbFiles)
                 {
-                    // Se o arquivo do banco NÃO estiver na lista do disco...
                     if (!files.Contains(dbFile.FilePath))
                     {
-                        // ...significa que foi deletado!
                         await _IFileRepository.Delete(dbFile.Id);
                         _logger.LogWarning("ALERTA: Arquivo deletado! {Arquivo}", dbFile.FilePath);
                     }
                 }
-                await Task.Delay(1000, stoppingToken);
+                int delayTime = _MonitorSettings.Value.IntervalInSeconds * 1000;
+                await Task.Delay(delayTime, stoppingToken);
             }
         }
     }
