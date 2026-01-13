@@ -8,15 +8,26 @@ public class Sha256Hasher : IFileHasher
 {
     public async Task<string?> HashAsync(string filePath)
     {
-        try
+        const int MaxTentativas = 3;
+        const int DelayMs = 500;
+        for (int i = 1; i <= MaxTentativas; i++)
         {
-            using var stream = File.OpenRead(filePath);
-            byte[] hashBytes = await SHA256.HashDataAsync(stream);
-            return Convert.ToHexString(hashBytes);
+            try
+            {
+                using var stream = File.OpenRead(filePath);
+                byte[] hashBytes = await SHA256.HashDataAsync(stream);
+                return Convert.ToHexString(hashBytes);
+            }
+            catch (FileNotFoundException)
+            {
+                return null;
+            }
+            catch (IOException)
+            {
+                if (i == MaxTentativas) return null;
+                await Task.Delay(DelayMs);
+            } 
         }
-        catch (FileNotFoundException)
-        {
-            return null;
-        }
+        return null;
     }
 }
