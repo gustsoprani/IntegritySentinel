@@ -36,6 +36,24 @@ try
     // Futuro: Registrar Repositories e Services aqui...
 
     var host = builder.Build();
+    // 1. Criamos um escopo para pegar o serviço
+    using (var scope = host.Services.CreateScope())
+    {
+        var services = scope.ServiceProvider;
+        try
+        {
+            // 2. Pegamos o Bootstrap que estava parado
+            var bootstrap = services.GetRequiredService<DatabaseBootstrap>();
+
+            // 3. Mandamos ele trabalhar (Criar a tabela)
+            bootstrap.Setup();
+        }
+        catch (Exception ex)
+        {
+            Log.Fatal(ex, "Erro fatal ao criar o banco de dados!");
+            return; // Para o programa se não conseguir criar o banco
+        }
+    }
     host.Run();
 }
 catch (Exception ex)

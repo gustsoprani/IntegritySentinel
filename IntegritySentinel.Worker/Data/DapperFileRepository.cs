@@ -41,5 +41,11 @@ namespace IntegritySentinel.Worker.Data
             return await connection.QueryAsync<FileRecord>(sql);
         }
 
+        public async Task Delete(int id)
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            var sql = "DELETE FROM Files WHERE Id = @Id";
+            await connection.ExecuteAsync(sql, new { Id = id });
+        }
     }
 }

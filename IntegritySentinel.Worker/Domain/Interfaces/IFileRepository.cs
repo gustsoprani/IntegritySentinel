@@ -14,5 +14,6 @@ namespace IntegritySentinel.Worker.Domain.Interfaces
         Task Add(FileRecord file);
         Task Update(FileRecord file);
         Task<IEnumerable<FileRecord>> SearchAll();
+        Task Delete(int id);
     }
 }
