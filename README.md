@@ -13,13 +13,13 @@ O **IntegritySentinel** é um agente de segurança (FIM - File Integrity Monitor
 2. **Alteração** de conteúdo (detectada via recálculo de Hash SHA-256).
 3. **Exclusão** de arquivos monitorados.
 
-O projeto foi construído seguindo princípios de **Clean Architecture**, **SOLID** e focado em performance com I/O Assíncrono.
+O projeto foi construído seguindo princípios de **Clean Architecture**, **SOLID** e focado em performance com I/O Assíncrono e Resiliência (Retry Pattern).
 
 ---
 
 ## ⚙️ Arquitetura e Fluxo
 
-O sistema opera em um ciclo de *Polling* inteligente, configurável e otimizado para ambientes onde eventos de sistema de arquivos (FileSystemWatcher) não são confiáveis (ex: Volumes Docker montados via WSL2).
+O sistema opera em um ciclo de *Polling* inteligente. Diferente do `FileSystemWatcher` nativo (que falha em volumes Docker/WSL2), este worker implementa um algoritmo robusto que tolera falhas temporárias de leitura (arquivos em uso).
 
 ```mermaid
 flowchart TD
@@ -29,7 +29,11 @@ flowchart TD
     C --> D[Para CADA Arquivo Real]
     
     D --> E{Arquivo Bloqueado?}
-    E -- Sim --> F["Logar Warning / Tentar Prox Ciclo"]
+    E -- "Sim (IOException)" --> F{Tentativas < 3?}
+    F -- Sim --> W[Aguardar 500ms]
+    W --> E
+    F -- Não --> X[Logar Warning e Pular]
+    
     E -- Não --> G[Calcular Hash SHA-256]
     
     G --> H{Hash existe no BD?}
@@ -45,7 +49,7 @@ flowchart TD
     J --> O[Próximo]
     M --> O
     N --> O
-    F --> O
+    X --> O
     
     O --> P{Acabaram os Arquivos?}
     P -- Não --> D
@@ -61,21 +65,54 @@ flowchart TD
 * **ORM:** Dapper (Micro-ORM para alta performance e controle de SQL)
 * **Criptografia:** SHA-256 (`System.Security.Cryptography`)
 * **Logs:** Serilog (Logs estruturados e persistência em arquivo)
-* **Injeção de Dependência:** Nativa do .NET
-* **Configuração:** Padrão `IOptions<T>`
+* **Resiliência:** Retry Pattern nativo para I/O
+* **Container:** Docker & Docker Compose
 
-## 🔧 Como Rodar (Localmente)
+## ⚙️ Configuração
 
-1. Clone o repositório:
-   ```bash
-   git clone [https://github.com/SEU-USUARIO/IntegritySentinel.git](https://github.com/SEU-USUARIO/IntegritySentinel.git)
+As configurações principais ficam no `appsettings.json` ou podem ser injetadas via Variáveis de Ambiente no Docker.
+
+| Configuração | Descrição | Padrão |
+|--------------|-----------|--------|
+| `TargetPath` | Caminho da pasta a ser monitorada. | `monitorada` (Relativo) |
+| `IntervalInSeconds` | Tempo de espera entre os ciclos de verificação. | `5` |
+| `IgnoredExtensions` | Extensões que o sistema deve ignorar (ex: logs). | `.tmp|.log|.db` |
+
+---
+
+## 🔧 Como Rodar
+
+### Opção 1: Via Docker (Recomendado)
+
+Esta opção garante que o ambiente seja idêntico ao de produção, sem necessidade de instalar o .NET SDK na máquina.
+
+1. **Configure a pasta monitorada:**
+   Abra o arquivo `docker-compose.yml` e altere o volume se desejar monitorar uma pasta específica do seu host:
+   ```yaml
+   volumes:
+     - ./caminho/da/sua/pasta:/app/monitorada
    ```
-2. Configure o arquivo `appsettings.json` com a pasta que deseja monitorar.
-3. Execute o projeto:
+
+2. **Execute o container:**
+   ```bash
+   docker-compose up --build -d
+   ```
+
+3. **Acompanhe os logs:**
+   Os logs serão salvos na pasta `./logs` ou podem ser vistos via comando:
+   ```bash
+   docker logs -f integrity_sentinel_app
+   ```
+
+### Opção 2: Rodando Localmente (Visual Studio / CLI)
+
+1. Certifique-se de ter o **.NET SDK 8.0** instalado.
+2. Clone o repositório.
+3. Configure o `appsettings.json` com o caminho local da pasta.
+4. Execute:
    ```bash
    dotnet run --project IntegritySentinel.Worker
    ```
-4. Acompanhe os logs no console ou na pasta `/logs`.
 
 ---
 *Desenvolvido como parte do portfólio de Segurança e Backend.*
