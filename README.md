@@ -122,5 +122,13 @@ Garante o ambiente completo (App + Seq) sem instalar o SDK na máquina.
    dotnet run --project IntegritySentinel.Worker
    ```
 
+## 🔮 Roadmap e Melhorias Futuras
+
+Para versões futuras (v2.0+), o projeto tem mapeado os seguintes pontos de evolução técnica, focando em escala massiva:
+
+- [ ] **Paginação/Streaming (Batch Processing):** Implementar `IAsyncEnumerable` no repositório para processar arquivos em lotes, evitando consumo excessivo de RAM em cenários com milhões de arquivos (Otimização de Memória).
+- [ ] **Hardening de Segurança:** Implementação de assinatura digital dos logs para garantir não-repúdio.
+- [ ] **Notificações:** Integração com Slack/Teams/Discord via Webhooks para alertas críticos.
+
 ---
 *Desenvolvido como parte do portfólio de Segurança e Backend.*
