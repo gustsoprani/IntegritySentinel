@@ -1,9 +1,10 @@
 # 🛡️ IntegritySentinel (File Integrity Monitor)
 
-> Um Worker Service robusto em .NET 8 para monitoramento de integridade de arquivos em tempo real, utilizando Hashing SHA-256 e persistência com SQLite/Dapper.
+> Um Worker Service robusto em .NET 8 para monitoramento de integridade de arquivos em tempo real, utilizando Hashing SHA-256, resiliência avançada e observabilidade.
 
 ![.NET](https://img.shields.io/badge/.NET-8.0-purple)
 ![Docker](https://img.shields.io/badge/Docker-Ready-blue)
+![Tests](https://img.shields.io/badge/Tests-Passing-success)
 ![Status](https://img.shields.io/badge/Status-Active-success)
 
 ## 📋 Sobre o Projeto
@@ -13,13 +14,13 @@ O **IntegritySentinel** é um agente de segurança (FIM - File Integrity Monitor
 2. **Alteração** de conteúdo (detectada via recálculo de Hash SHA-256).
 3. **Exclusão** de arquivos monitorados.
 
-O projeto foi construído seguindo princípios de **Clean Architecture**, **SOLID** e focado em performance com I/O Assíncrono e Resiliência (Retry Pattern).
+O projeto foi construído seguindo princípios de **Clean Architecture**, **SOLID** e focado em performance com I/O Assíncrono, Resiliência (Polly) e Qualidade (Testes Unitários).
 
 ---
 
 ## ⚙️ Arquitetura e Fluxo
 
-O sistema opera em um ciclo de *Polling* inteligente. Diferente do `FileSystemWatcher` nativo (que falha em volumes Docker/WSL2), este worker implementa um algoritmo robusto que tolera falhas temporárias de leitura (arquivos em uso).
+O sistema opera em um ciclo de *Polling* inteligente. Utilizamos o **Polly** para garantir que arquivos bloqueados temporariamente pelo sistema operacional não gerem falsos positivos ou erros na aplicação.
 
 ```mermaid
 flowchart TD
@@ -28,11 +29,13 @@ flowchart TD
     B -- Sim --> C[Listar Arquivos no Disco]
     C --> D[Para CADA Arquivo Real]
     
-    D --> E{Arquivo Bloqueado?}
-    E -- "Sim (IOException)" --> F{Tentativas < 3?}
-    F -- Sim --> W[Aguardar 500ms]
-    W --> E
-    F -- Não --> X[Logar Warning e Pular]
+    subgraph Resilience [Polly: Política de Retry]
+        D --> E{Leitura Bloqueada?}
+        E -- "Sim (IOException)" --> F{Tentativas < 3?}
+        F -- Sim --> W["Backoff Exponencial (Wait)"]
+        W --> E
+        F -- Não --> X[Logar Warning e Pular]
+    end
     
     E -- Não --> G[Calcular Hash SHA-256]
     
@@ -53,20 +56,32 @@ flowchart TD
     
     O --> P{Acabaram os Arquivos?}
     P -- Não --> D
-    P -- Sim --> Q[Verificar Deletados no DB]
-    Q --> R["Dormir (Intervalo Configurado)"]
-    R --> A
+    P -- Sim --> Q[Verificar Deletados (HashSet vs DB)]
+    Q --> R["DELETE Removidos"]
+    R --> S["Dormir (Intervalo Configurado)"]
+    S --> A
 ```
 
 ## 🚀 Tecnologias Utilizadas
 
 * **Runtime:** .NET 8 (Worker Service)
 * **Banco de Dados:** SQLite (Leve e portátil)
-* **ORM:** Dapper (Micro-ORM para alta performance e controle de SQL)
+* **ORM:** Dapper (Micro-ORM para alta performance)
 * **Criptografia:** SHA-256 (`System.Security.Cryptography`)
-* **Logs:** Serilog (Logs estruturados e persistência em arquivo)
-* **Resiliência:** Retry Pattern nativo para I/O
+* **Resiliência:** Polly (Retry Pattern com Backoff Exponencial)
+* **Testes:** xUnit + Moq (Cobertura de testes unitários)
+* **Observabilidade:** Serilog + Seq (Logs estruturados centralizados)
+* **CI/CD:** GitHub Actions (Pipeline automatizado de testes)
 * **Container:** Docker & Docker Compose
+
+## 📊 Observabilidade e Monitoramento
+
+O sistema implementa **Logs Estruturados** utilizando **Serilog**. Diferente de logs de texto simples, os eventos possuem propriedades ricas (como Nome do Arquivo, Hash, Tipo de Evento), permitindo filtragem e análise automatizada.
+
+O projeto já vem configurado com um container **Seq** para centralização de logs.
+
+- **Dashboard de Logs:** Acessível em `http://localhost:5341` (via Docker).
+- **Alertas em Tempo Real:** O sistema categoriza eventos críticos (Deleção/Modificação) como `Warning`.
 
 ## ⚙️ Configuração
 
@@ -84,32 +99,25 @@ As configurações principais ficam no `appsettings.json` ou podem ser injetadas
 
 ### Opção 1: Via Docker (Recomendado)
 
-Esta opção garante que o ambiente seja idêntico ao de produção, sem necessidade de instalar o .NET SDK na máquina.
+Garante o ambiente completo (App + Seq) sem instalar o SDK na máquina.
 
-1. **Configure a pasta monitorada:**
-   Abra o arquivo `docker-compose.yml` e altere o volume se desejar monitorar uma pasta específica do seu host:
-   ```yaml
-   volumes:
-     - ./caminho/da/sua/pasta:/app/monitorada
-   ```
-
-2. **Execute o container:**
+1. **Execute o ambiente:**
    ```bash
    docker-compose up --build -d
    ```
 
-3. **Acompanhe os logs:**
-   Os logs serão salvos na pasta `./logs` ou podem ser vistos via comando:
-   ```bash
-   docker logs -f integrity_sentinel_app
-   ```
+2. **Acessar Logs:**
+   - Painel Visual (Seq): Abra `http://localhost:5341` (Login: `admin` / Senha: ver `docker-compose.yml`).
+   - Terminal: `docker logs -f integrity_sentinel_app`
 
 ### Opção 2: Rodando Localmente (Visual Studio / CLI)
 
 1. Certifique-se de ter o **.NET SDK 8.0** instalado.
-2. Clone o repositório.
-3. Configure o `appsettings.json` com o caminho local da pasta.
-4. Execute:
+2. Execute os testes para garantir a integridade:
+   ```bash
+   dotnet test
+   ```
+3. Execute a aplicação:
    ```bash
    dotnet run --project IntegritySentinel.Worker
    ```

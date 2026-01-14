@@ -10,7 +10,7 @@ namespace IntegritySentinel.Worker.Data
         private readonly string _connectionString;
         public DapperFileRepository(IConfiguration configuration)
         {
-            _connectionString = configuration.GetConnectionString("DefaultConnection");
+            _connectionString = configuration.GetConnectionString("DefaultConnection")!;
         }
 
         public async Task Add(FileRecord file)

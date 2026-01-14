@@ -3,10 +3,19 @@ using IntegritySentinel.Worker.Configuration;
 using IntegritySentinel.Worker.Data;
 using IntegritySentinel.Worker.Domain.Interfaces;
 using IntegritySentinel.Worker.Services;
+using Microsoft.Extensions.Configuration;
 using Serilog;
+
+var configuration = new ConfigurationBuilder()
+    .SetBasePath(Directory.GetCurrentDirectory())
+    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+    .AddEnvironmentVariables() // Importante para o Docker sobrescrever configurações
+    .Build();
 
 // Configuração inicial do Serilog (para pegar erros de startup)
 Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(configuration)
+    .Enrich.FromLogContext()
     .WriteTo.Console()
     .WriteTo.File("logs/log.txt", rollingInterval: RollingInterval.Day)
     .CreateLogger();
@@ -32,6 +41,8 @@ try
     builder.Services.AddSingleton<IFileRepository, DapperFileRepository>();
 
     builder.Services.AddSingleton<IFileHasher, Sha256Hasher>();
+
+    builder.Services.AddSingleton<IIntegrityService, IntegrityService>();
 
     // Futuro: Registrar Repositories e Services aqui...
 

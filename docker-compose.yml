@@ -1,15 +1,30 @@
 services:
+  # Seu app
   integrity-sentinel:
     build: 
       context: ./IntegritySentinel.Worker
       dockerfile: Dockerfile
     container_name: integrity_sentinel_app
     restart: unless-stopped
+    depends_on:
+      - seq # O App espera o Seq subir
     environment:
       - MonitorSettings__TargetPath=/data
       - MonitorSettings__IntervalInSeconds=5
+      # Configura o Serilog para enviar para o container do Seq
+      - Serilog__WriteTo__0__Name=Seq
+      - Serilog__WriteTo__0__Args__serverUrl=http://seq:5341
     volumes:
-      # Liga a pasta 'monitorada' do Windows na pasta '/data' do Linux
       - ./monitorada:/data
-      # Liga a pasta 'logs' para podermos ler os arquivos de texto
       - ./logs:/app/logs
+
+  # O servidor de Logs
+  seq:
+    image: datalust/seq:latest
+    container_name: integrity_sentinel_seq
+    environment:
+      - ACCEPT_EULA=Y
+      - SEQ_FIRSTRUN_ADMINPASSWORD=admin123!
+    ports:
+      - "5341:80" # Você acessa o painel em http://localhost:5341
+    restart: unless-stopped

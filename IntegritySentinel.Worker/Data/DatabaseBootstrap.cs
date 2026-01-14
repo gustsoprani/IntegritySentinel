@@ -7,14 +7,13 @@ namespace IntegritySentinel.Worker.Data;
 
 public class DatabaseBootstrap
 {
-    private readonly MonitorSettings _settings;
     private readonly string _connectionString;
 
     // Recebemos as configurações via Injeção de Dependência
     public DatabaseBootstrap(IConfiguration configuration)
     {
         // Pegamos a connection string do appsettings.json
-        _connectionString = configuration.GetConnectionString("DefaultConnection");
+        _connectionString = configuration.GetConnectionString("DefaultConnection")!;
     }
 
     public void Setup()
