@@ -56,7 +56,7 @@ flowchart TD
     
     O --> P{Acabaram os Arquivos?}
     P -- Não --> D
-    P -- Sim --> Q[Verificar Deletados (HashSet vs DB)]
+    P -- Sim --> Q["Verificar Deletados (HashSet vs DB)"]
     Q --> R["DELETE Removidos"]
     R --> S["Dormir (Intervalo Configurado)"]
     S --> A
